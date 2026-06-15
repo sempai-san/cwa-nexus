@@ -7,7 +7,7 @@
 # See CONTRIBUTORS for full list of authors.
 
 """
-Progress Syncing Module for Calibre-Web-Automated
+Progress Syncing Module for CWA-Nexus
 
 This package provides reading progress synchronization functionality for various
 e-reader devices and applications. It includes:

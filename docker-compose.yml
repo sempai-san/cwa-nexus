@@ -1,8 +1,8 @@
 ---
 services:
-  calibre-web-automated:
-    image: crocodilestick/calibre-web-automated:latest
-    container_name: calibre-web-automated
+  cwa-nexus:
+    image: ghcr.io/sempai-san/cwa-nexus:latest
+    container_name: cwa-nexus
     environment:
       # Only change these if you know what you're doing
       - PUID=1000

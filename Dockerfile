@@ -2,7 +2,7 @@
 
 # Simple Example Build Command:
 # docker build \
-# --tag crocodilestick/calibre-web-automated:dev \
+# --tag sempai-san/cwa-nexus:dev \
 # --build-arg="BUILD_DATE=27-09-2024 12:06" \
 # --build-arg="VERSION=2.1.0-test-5" .
 
@@ -15,7 +15,7 @@
 # --platform linux/amd64,linux/arm64, \
 # --build-arg="BUILD_DATE=02-08-2024 20:52" \
 # --build-arg="VERSION=2.1.0" \
-# --tag crocodilestick/calibre-web-automated:latest .
+# --tag sempai-san/cwa-nexus:latest .
 
 # ==========================================================================
 # STAGE 1: Dependencies - Install system packages and Python dependencies
