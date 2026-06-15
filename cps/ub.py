@@ -72,7 +72,7 @@ def _run_ddl_with_retry(engine, statements, retries=5, base_delay=0.25):
     for attempt in range(retries):
         try:
             with engine.begin() as conn:
-                conn.execute(text("PRAGMA busy_timeout=5000"))
+                conn.execute(text("PRAGMA busy_timeout=30000"))
                 for stmt in statements:
                     conn.execute(text(stmt))
             return True
@@ -674,6 +674,38 @@ class HardcoverMatchQueue(Base):
         return f'<HardcoverMatchQueue book_id={self.book_id} title="{self.book_title}" reviewed={bool(self.reviewed)}>'
 
 
+class CalibreLibrary(Base):
+    """Registered Calibre libraries — managed by admin."""
+    __tablename__ = 'cwa_library'
+
+    id          = Column(Integer, primary_key=True)
+    name        = Column(String, nullable=False)
+    path        = Column(String, nullable=False, unique=True)
+    description = Column(String, default='')
+    is_active   = Column(Boolean, default=True)
+    created     = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+    accesses = relationship('UserLibraryAccess', backref='library', cascade='all, delete-orphan', lazy='dynamic')
+
+    def __repr__(self):
+        return f'<CalibreLibrary id={self.id} name="{self.name}" path="{self.path}">'
+
+
+class UserLibraryAccess(Base):
+    """Tracks which user can access which library and which is their default."""
+    __tablename__ = 'cwa_user_library_access'
+
+    id         = Column(Integer, primary_key=True)
+    user_id    = Column(Integer, ForeignKey('user.id'), nullable=False)
+    library_id = Column(Integer, ForeignKey('cwa_library.id'), nullable=False)
+    is_default = Column(Boolean, default=False)
+
+    __table_args__ = (UniqueConstraint('user_id', 'library_id'),)
+
+    def __repr__(self):
+        return f'<UserLibraryAccess user={self.user_id} library={self.library_id} default={self.is_default}>'
+
+
 # Updates the last_modified timestamp in the KoboReadingState table if any of its children tables are modified.
 @event.listens_for(Session, 'before_flush')
 def receive_before_flush(session, flush_context, instances):
@@ -796,6 +828,10 @@ def add_missing_tables(engine, _session):
         MagicShelfCache.__table__.create(bind=engine, checkfirst=True)
     if not engine.dialect.has_table(engine.connect(), "hidden_magic_shelf_templates"):
         HiddenMagicShelfTemplate.__table__.create(bind=engine, checkfirst=True)
+    if not engine.dialect.has_table(engine.connect(), "cwa_library"):
+        CalibreLibrary.__table__.create(bind=engine, checkfirst=True)
+    if not engine.dialect.has_table(engine.connect(), "cwa_user_library_access"):
+        UserLibraryAccess.__table__.create(bind=engine, checkfirst=True)
 
 
 # migrate all settings missing in registration table
@@ -1037,6 +1073,14 @@ def migrate_magic_shelf_table(engine, _session):
         _run_ddl_with_retry(engine, "ALTER TABLE magic_shelf ADD column 'kobo_sync' Boolean DEFAULT 0")
 
 
+def migrate_cwa_library_tables(engine, _session):
+    """Ensure cwa_library and cwa_user_library_access tables exist (idempotent)."""
+    if not engine.dialect.has_table(engine.connect(), "cwa_library"):
+        CalibreLibrary.__table__.create(bind=engine, checkfirst=True)
+    if not engine.dialect.has_table(engine.connect(), "cwa_user_library_access"):
+        UserLibraryAccess.__table__.create(bind=engine, checkfirst=True)
+
+
 # Migrate database to current version, has to be updated after every database change. Currently migration from
 # maybe 4/5 versions back to current should work.
 # Migration is done by checking if relevant columns are existing, and then adding rows with SQL commands
@@ -1049,6 +1093,7 @@ def migrate_Database(_session):
     migrate_oauth_provider_table(engine, _session)
     migrate_config_table(engine, _session)
     migrate_magic_shelf_table(engine, _session)
+    migrate_cwa_library_tables(engine, _session)
 
     # Ensure progress syncing tables in app.db (user-related tables)
     from .progress_syncing.models import ensure_app_db_tables

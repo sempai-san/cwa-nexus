@@ -376,6 +376,56 @@ def create_app():
             # Failsafe: let route-level code handle specific DB errors
             pass
 
+    @app.before_request
+    def _cwa_set_library_context():
+        """Set the active Calibre library for the current request."""
+        from .cw_login import current_user
+        if not current_user.is_authenticated:
+            g.active_library = None
+            g.user_libraries = []
+            return
+
+        from . import ub as _ub
+
+        try:
+            library_id = session.get("active_library_id")
+
+            if library_id:
+                lib = _ub.session.get(_ub.CalibreLibrary, library_id)
+            else:
+                access = (
+                    _ub.session.query(_ub.UserLibraryAccess)
+                    .filter_by(user_id=current_user.id, is_default=True)
+                    .first()
+                )
+                lib = access.library if access else None
+
+            if lib is None or not lib.is_active:
+                access = (
+                    _ub.session.query(_ub.UserLibraryAccess)
+                    .filter_by(user_id=current_user.id)
+                    .join(_ub.CalibreLibrary)
+                    .filter(_ub.CalibreLibrary.is_active == True)
+                    .first()
+                )
+                lib = access.library if access else None
+
+            g.active_library = lib
+
+            user_accesses = (
+                _ub.session.query(_ub.UserLibraryAccess)
+                .filter_by(user_id=current_user.id)
+                .join(_ub.CalibreLibrary)
+                .filter(_ub.CalibreLibrary.is_active == True)
+                .all()
+            )
+            g.user_libraries = [a.library for a in user_accesses]
+
+        except Exception as e:
+            log.warning("Could not load library context: %s", e)
+            g.active_library = None
+            g.user_libraries = []
+
     @app.teardown_appcontext
     def shutdown_session(exception=None):
         if calibre_db.session_factory:
@@ -384,6 +434,9 @@ def create_app():
     from .schedule import register_scheduled_tasks, register_startup_tasks
     register_scheduled_tasks(config.schedule_reconnect)
     register_startup_tasks()
+
+    from .cwa_library_api import library_api
+    app.register_blueprint(library_api)
 
     return app
 
