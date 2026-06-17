@@ -103,6 +103,22 @@ def remove_library(lib_id):
     return jsonify({"status": "deactivated", "id": lib_id})
 
 
+@library_api.route("/admin/users/<int:user_id>/libraries", methods=["GET"])
+@login_required
+@_admin_required
+def get_user_library_access(user_id):
+    user = ub.session.get(ub.User, user_id)
+    if not user:
+        abort(404)
+    accesses = ub.session.query(ub.UserLibraryAccess).filter_by(user_id=user_id).all()
+    default_id = next((a.library_id for a in accesses if a.is_default), None)
+    return jsonify({
+        "user_id": user_id,
+        "library_ids": [a.library_id for a in accesses],
+        "default_library_id": default_id,
+    })
+
+
 @library_api.route("/admin/users/<int:user_id>/libraries", methods=["PUT"])
 @login_required
 @_admin_required

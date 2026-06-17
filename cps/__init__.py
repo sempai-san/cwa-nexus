@@ -412,6 +412,15 @@ def create_app():
 
             g.active_library = lib
 
+            if lib is not None:
+                from .library_manager import get_session_for_library
+                try:
+                    lib_scoped = get_session_for_library(lib.path)
+                    calibre_db.session = lib_scoped()
+                    g._active_library_scoped = lib_scoped
+                except Exception as lib_e:
+                    log.warning("Could not switch calibre_db to library %s: %s", lib.path, lib_e)
+
             user_accesses = (
                 _ub.session.query(_ub.UserLibraryAccess)
                 .filter_by(user_id=current_user.id)
@@ -428,6 +437,12 @@ def create_app():
 
     @app.teardown_appcontext
     def shutdown_session(exception=None):
+        lib_scoped = g.get('_active_library_scoped')
+        if lib_scoped is not None:
+            try:
+                lib_scoped.remove()
+            except Exception:
+                pass
         if calibre_db.session_factory:
             calibre_db.session_factory.remove()
 

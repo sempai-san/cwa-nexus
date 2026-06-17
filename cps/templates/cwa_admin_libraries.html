@@ -71,7 +71,7 @@
               <tr id="lib-row-{{ lib.id }}">
                 <td>{{ lib.id }}</td>
                 <td>{{ lib.name }}</td>
-                <td><code>{{ lib.path }}</code></td>
+                <td><span style="background:#e8e8e8;color:#222;border-radius:3px;padding:2px 6px;font-family:monospace;font-size:87%;display:inline-block;word-break:break-all;">{{ lib.path }}</span></td>
                 <td>{{ lib.description }}</td>
                 <td>
                   {% if lib.is_active %}
@@ -187,33 +187,28 @@ function loadUserAccess() {
   const userId = document.getElementById("user-select").value;
   if (!userId) { document.getElementById("user-access-panel").style.display = "none"; return; }
 
-  // Fetch all active libraries + current user's access in parallel
+  const emptyAccess = {library_ids: [], default_library_id: null};
   Promise.all([
     fetch("/admin/libraries").then(r => r.json()),
-    fetch(`/library/available`).then(r => r.json())  // own view; admin uses list_libraries
-  ]).then(([libs, _]) => {
-    fetch(`/admin/users/${userId}/libraries/current`).then(r => {
-      if (!r.ok) return [];
-      return r.json();
-    }).catch(() => []).then(userAccess => {
-      const accessMap = {};
-      const defaultId = userAccess.default_library_id || null;
-      (userAccess.library_ids || []).forEach(id => { accessMap[id] = true; });
+    fetch(`/admin/users/${userId}/libraries`).then(r => r.ok ? r.json() : emptyAccess).catch(() => emptyAccess)
+  ]).then(([libs, userAccess]) => {
+    const accessMap = {};
+    const defaultId = userAccess.default_library_id || null;
+    (userAccess.library_ids || []).forEach(id => { accessMap[id] = true; });
 
-      const tbody = document.getElementById("user-access-body");
-      tbody.innerHTML = "";
-      libs.filter(l => l.is_active).forEach(lib => {
-        const checked = accessMap[lib.id] ? "checked" : "";
-        const isDefault = lib.id === defaultId;
-        tbody.innerHTML += `
-          <tr>
-            <td>${lib.name} <small class="text-muted">(${lib.path})</small></td>
-            <td><input type="checkbox" class="lib-access-check" data-lib-id="${lib.id}" ${checked}></td>
-            <td><input type="radio" name="default-lib" value="${lib.id}" ${isDefault ? "checked" : ""}></td>
-          </tr>`;
-      });
-      document.getElementById("user-access-panel").style.display = "block";
+    const tbody = document.getElementById("user-access-body");
+    tbody.innerHTML = "";
+    libs.filter(l => l.is_active).forEach(lib => {
+      const checked = accessMap[lib.id] ? "checked" : "";
+      const isDefault = lib.id === defaultId;
+      tbody.innerHTML += `
+        <tr>
+          <td>${lib.name} <small class="text-muted">(${lib.path})</small></td>
+          <td><input type="checkbox" class="lib-access-check" data-lib-id="${lib.id}" ${checked}></td>
+          <td><input type="radio" name="default-lib" value="${lib.id}" ${isDefault ? "checked" : ""}></td>
+        </tr>`;
     });
+    document.getElementById("user-access-panel").style.display = "block";
   });
 }
 
@@ -235,6 +230,7 @@ function saveUserAccess() {
     el.style.display = "block";
     el.className = ok ? "alert alert-success" : "alert alert-danger";
     el.textContent = ok ? "Access updated." : (data.error || "Error");
+    if (ok) loadUserAccess();
   });
 }
 </script>
