@@ -141,6 +141,30 @@
                 </ul>
               </li>
               {% endif %}
+              {% if current_user.is_authenticated and g.user_libraries and g.user_libraries | length > 1 %}
+              <li class="dropdown">
+                <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button"
+                   aria-haspopup="true" aria-expanded="false"
+                   title="Switch Library">
+                  <span class="glyphicon glyphicon-book"></span>
+                  <span class="hidden-xs hidden-sm">
+                    {% if g.active_library %}{{ g.active_library.name }}{% else %}Library{% endif %}
+                  </span>
+                  <span class="caret"></span>
+                </a>
+                <ul class="dropdown-menu">
+                  {% for lib in g.user_libraries %}
+                  <li {% if g.active_library and lib.id == g.active_library.id %}class="active"{% endif %}>
+                    <a href="{{ url_for('library_api.switch_library', lib_id=lib.id) }}">
+                      <span class="glyphicon glyphicon-book"></span>
+                      {{ lib.name }}
+                      {% if lib.id == g.active_library.id %}<small class="text-muted"> (active)</small>{% endif %}
+                    </a>
+                  </li>
+                  {% endfor %}
+                </ul>
+              </li>
+              {% endif %}
               <li class="cwa-switch-theme">
                 <a id="cwa-switch-theme" href="#" class="disabled" style="opacity: 0.5; cursor: not-allowed;" title="Temporarily disabled until v5.0.0" data-toggle="tooltip" data-placement="bottom" onclick="return false;">
                   <span class="glyphicon glyphicon-sunglasses"></span>

@@ -403,6 +403,12 @@ class NewBookProcessor:
             except Exception as e:
                 print(f"[ingest-processor] WARN: Could not read config_calibre_dir from app.db ({app_db_path}), using default. Error: {e}", flush=True)
 
+        # Multi-library routing: CWA_LIBRARY_OVERRIDE takes precedence over config_calibre_dir
+        library_override = os.environ.get("CWA_LIBRARY_OVERRIDE")
+        if library_override:
+            print(f"[ingest-processor] CWA_LIBRARY_OVERRIDE active — using library: {library_override}", flush=True)
+            self.library_dir = library_override
+
         Path(self.tmp_conversion_dir).mkdir(exist_ok=True)
         self.staging_dir = os.path.join(self.tmp_conversion_dir, "staging")
         Path(self.staging_dir).mkdir(exist_ok=True)

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
-# Calibre-Web Automated – fork of Calibre-Web
+# CWA-Nexus – fork of Calibre-Web Automated
 # Copyright (C) 2018-2025 Calibre-Web contributors
-# Copyright (C) 2024-2025 Calibre-Web Automated contributors
+# Copyright (C) 2024-2025 CWA-Nexus contributors
 # SPDX-License-Identifier: GPL-3.0-or-later
 # See CONTRIBUTORS for full list of authors.
 
@@ -376,14 +376,83 @@ def create_app():
             # Failsafe: let route-level code handle specific DB errors
             pass
 
+    @app.before_request
+    def _cwa_set_library_context():
+        """Set the active Calibre library for the current request."""
+        from .cw_login import current_user
+        if not current_user.is_authenticated:
+            g.active_library = None
+            g.user_libraries = []
+            return
+
+        from . import ub as _ub
+
+        try:
+            library_id = session.get("active_library_id")
+
+            if library_id:
+                lib = _ub.session.get(_ub.CalibreLibrary, library_id)
+            else:
+                access = (
+                    _ub.session.query(_ub.UserLibraryAccess)
+                    .filter_by(user_id=current_user.id, is_default=True)
+                    .first()
+                )
+                lib = access.library if access else None
+
+            if lib is None or not lib.is_active:
+                access = (
+                    _ub.session.query(_ub.UserLibraryAccess)
+                    .filter_by(user_id=current_user.id)
+                    .join(_ub.CalibreLibrary)
+                    .filter(_ub.CalibreLibrary.is_active == True)
+                    .first()
+                )
+                lib = access.library if access else None
+
+            g.active_library = lib
+
+            if lib is not None:
+                from .library_manager import get_session_for_library
+                try:
+                    lib_scoped = get_session_for_library(lib.path)
+                    calibre_db.session = lib_scoped()
+                    g._active_library_scoped = lib_scoped
+                    g.calibre_dir = lib.path
+                except Exception as lib_e:
+                    log.warning("Could not switch calibre_db to library %s: %s", lib.path, lib_e)
+
+            user_accesses = (
+                _ub.session.query(_ub.UserLibraryAccess)
+                .filter_by(user_id=current_user.id)
+                .join(_ub.CalibreLibrary)
+                .filter(_ub.CalibreLibrary.is_active == True)
+                .all()
+            )
+            g.user_libraries = [a.library for a in user_accesses]
+
+        except Exception as e:
+            log.warning("Could not load library context: %s", e)
+            g.active_library = None
+            g.user_libraries = []
+
     @app.teardown_appcontext
     def shutdown_session(exception=None):
+        lib_scoped = g.get('_active_library_scoped')
+        if lib_scoped is not None:
+            try:
+                lib_scoped.remove()
+            except Exception:
+                pass
         if calibre_db.session_factory:
             calibre_db.session_factory.remove()
 
     from .schedule import register_scheduled_tasks, register_startup_tasks
     register_scheduled_tasks(config.schedule_reconnect)
     register_startup_tasks()
+
+    from .cwa_library_api import library_api
+    app.register_blueprint(library_api)
 
     return app
 

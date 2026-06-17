@@ -438,6 +438,14 @@ class ConfigSQL(object):
         self.save()
 
     def get_book_path(self):
+        try:
+            from flask import g, has_request_context
+            if has_request_context():
+                calibre_dir = g.get('calibre_dir')
+                if calibre_dir:
+                    return calibre_dir
+        except Exception:
+            pass
         return self.config_calibre_split_dir if self.config_calibre_split else self.config_calibre_dir
 
     def store_calibre_uuid(self, calibre_db, Library_table):

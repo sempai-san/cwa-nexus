@@ -1,6 +1,6 @@
-# Calibre-Web Automated _(formerly Calibre-Web Automator)_
+# CWA-Nexus _(Fork of Calibre-Web Automated)_
 
-![Calibre-Web Automated](README_images/CWA-banner.png "Calibre-Web Automated")
+![CWA-Nexus](README_images/CWA-banner.png "CWA-Nexus")
 
 ## Making Calibre-Web your _dream_, all-in-one self-hosted digital library solution.
 
@@ -46,7 +46,7 @@ However, when compared to full-fat Calibre, it unfortunately lacks a few core fe
 
 ## Goal of the Project 🎯
 
-Calibre-Web Automated aims to be an all-in-one solution, combining the modern lightweight web UI from Calibre-Web with the robust, versatile feature set of Calibre, with a slew of extra features and automations thrown in on top.
+CWA-Nexus aims to be an all-in-one solution, combining the modern lightweight web UI from Calibre-Web with the robust, versatile feature set of Calibre, with a slew of extra features and automations thrown in on top.
 
 ![Calibre-Web Automated Example Homepage](https://github.com/crocodilestick/Calibre-Web-Automated/blob/main/README_images/CWA-Homepage.png?raw=true)
 ![Calibre-Web Automated Example Book Page](https://github.com/crocodilestick/Calibre-Web-Automated/blob/main/README_images/new-book-details-page.png?raw=true)
@@ -56,7 +56,7 @@ Calibre-Web Automated aims to be an all-in-one solution, combining the modern li
 
 ### Shelfmark: Book Downloader
 
-- An intuitive web interface for searching and requesting book downloads, designed to work seamlessly with Calibre-Web-Automated. This project streamlines the process of downloading books and preparing them for integration into your Calibre library
+- An intuitive web interface for searching and requesting book downloads, designed to work seamlessly with CWA-Nexus. This project streamlines the process of downloading books and preparing them for integration into your Calibre library
 
 > [!IMPORTANT]  
 > CWA does not approve of or support piracy of copyrighted materials and is not responsible for user behaviour
@@ -403,7 +403,7 @@ Please make sure all 3 of the main volume bindings are separate directories, err
 **Note:** If you can't find this file, it means you haven't configured any Calibre plugins yet. You can skip the plugins volume binding if you don't use Calibre plugins.
 
 
-And just like that, Calibre-Web Automated should be up and running! **HOWEVER** to avoid potential problems and ensure maximum functionality,we recommend carrying out these [Post-Install Tasks Here](#post-install-tasks).
+And just like that, CWA-Nexus should be up and running! **HOWEVER** to avoid potential problems and ensure maximum functionality,we recommend carrying out these [Post-Install Tasks Here](#post-install-tasks).
 
 # Users migrating from stock Calibre-Web
 
@@ -421,7 +421,7 @@ And just like that, Calibre-Web Automated should be up and running! **HOWEVER** 
 
 1. Open your browser and navigate to http://localhost:8083 or http://localhost:8083/opds for the OPDS catalog
 2. Log in with the default admin credentials (_below_)
-3. Configure your Calibre-Web Automated instance via the Admin Page
+3. Configure your CWA-Nexus instance via the Admin Page
   - If you need help with any of the settings, consult the CWA Wiki [here](https://github.com/crocodilestick/Calibre-Web-Automated/wiki)
   - Make sure `Enable Uploads` is enabled in `Settings -> Basic Configuration -> Feature Configuration`
 4. Configure CWA to behave as you would like it to in the CWA Settings panel
@@ -453,7 +453,7 @@ CWA now includes built-in KOReader syncing functionality, allowing you to sync y
 ## Local Development Setup
 
 1. **Build the image**
-   Edit and run [`build.sh`](https://github.com/crocodilestick/Calibre-Web-Automated/blob/main/build.sh) to build a local Docker image of Calibre-Web-Automated.  See the script itself for usage details.
+   Edit and run [`build.sh`](build.sh) to build a local Docker image of CWA-Nexus.  See the script itself for usage details.
 
 2. **Edit [`docker-compose.yml.dev`](https://github.com/crocodilestick/Calibre-Web-Automated/blob/main/docker-compose.yml.dev)**
    Update at minimum:

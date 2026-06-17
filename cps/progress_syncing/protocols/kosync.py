@@ -7,7 +7,7 @@
 # See CONTRIBUTORS for full list of authors.
 
 """
-KOReader Sync Server Implementation for Calibre-Web-Automated
+KOReader Sync Server Implementation for CWA-Nexus
 
 This module provides a sync server compatible with KOReader's sync functionality,
 allowing users to sync their reading progress across devices.

@@ -239,7 +239,7 @@ def get_comic_book(book_id, book_format, page):
     else:
         for bookformat in book.data:
             if bookformat.format.lower() == book_format.lower():
-                cbr_file = os.path.join(config.config_calibre_dir, book.path, bookformat.name) + "." + book_format
+                cbr_file = os.path.join(config.get_book_path(), book.path, bookformat.name) + "." + book_format
                 if book_format in ("cbr", "rar"):
                     if feature_support['rar'] == True:
                         rarfile.UNRAR_TOOL = config.config_rarfile_location
