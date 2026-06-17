@@ -9,6 +9,7 @@ from sqlalchemy import exc
 
 from . import logger, ub
 from .cw_login import current_user, login_required
+from .render_template import render_title_template
 
 log = logger.create()
 
@@ -139,10 +140,9 @@ def set_user_library_access(user_id):
 @login_required
 @_admin_required
 def admin_libraries_ui():
-    from flask import render_template
     all_users = ub.session.query(ub.User).filter(ub.User.name != "Guest").order_by(ub.User.name).all()
     all_libs = ub.session.query(ub.CalibreLibrary).order_by(ub.CalibreLibrary.name).all()
-    return render_template(
+    return render_title_template(
         "cwa_admin_libraries.html",
         title="Libraries",
         all_libraries=all_libs,
