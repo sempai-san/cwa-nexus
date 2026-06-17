@@ -1,149 +1,139 @@
 {% extends "layout.html" %}
 {% block body %}
-<div class="container-fluid">
-  <div class="row">
-    <div class="col">
-      <h2>Libraries</h2>
+<div class="discover">
+  <h2>{{_('Manage Libraries')}}&nbsp;&nbsp;📚</h2>
 
-      <!-- Flash messages -->
-      {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-          {% for category, message in messages %}
-            <div class="alert alert-{{ category }}">{{ message }}</div>
-          {% endfor %}
-        {% endif %}
-      {% endwith %}
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div class="alert alert-{{ 'danger' if category == 'error' else category }}">{{ message }}</div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
 
-      <!-- Add library form -->
-      <div class="panel panel-default">
-        <div class="panel-heading"><strong>Register New Library</strong></div>
-        <div class="panel-body">
-          <form id="form-add-library">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <div class="row">
-              <div class="col-md-3">
-                <div class="form-group">
-                  <label>Name</label>
-                  <input type="text" class="form-control" id="lib-name" placeholder="e.g. Belletristik" required>
-                </div>
-              </div>
-              <div class="col-md-4">
-                <div class="form-group">
-                  <label>Container Path (must contain metadata.db)</label>
-                  <input type="text" class="form-control" id="lib-path" placeholder="/calibre-libraries/belletristik" required>
-                </div>
-              </div>
-              <div class="col-md-3">
-                <div class="form-group">
-                  <label>Description (optional)</label>
-                  <input type="text" class="form-control" id="lib-desc">
-                </div>
-              </div>
-              <div class="col-md-2">
-                <div class="form-group">
-                  <label>&nbsp;</label>
-                  <button type="submit" class="btn btn-primary form-control">Add Library</button>
-                </div>
-              </div>
-            </div>
-          </form>
-          <div id="lib-add-result" class="alert" style="display:none;"></div>
-        </div>
-      </div>
+  <input type="hidden" id="csrf_token" value="{{ csrf_token() }}">
 
-      <!-- Library table -->
-      <div class="panel panel-default">
-        <div class="panel-heading"><strong>Registered Libraries</strong></div>
-        <div class="panel-body">
-          <table class="table table-striped" id="lib-table">
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>Name</th>
-                <th>Path</th>
-                <th>Description</th>
-                <th>Active</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for lib in all_libraries %}
-              <tr id="lib-row-{{ lib.id }}">
-                <td>{{ lib.id }}</td>
-                <td>{{ lib.name }}</td>
-                <td><span style="background:#e8e8e8;color:#222;border-radius:3px;padding:2px 6px;font-family:monospace;font-size:87%;display:inline-block;word-break:break-all;">{{ lib.path }}</span></td>
-                <td>{{ lib.description }}</td>
-                <td>
-                  {% if lib.is_active %}
-                    <span class="glyphicon glyphicon-ok text-success"></span>
-                  {% else %}
-                    <span class="glyphicon glyphicon-remove text-danger"></span>
-                  {% endif %}
-                </td>
-                <td>
-                  {% if lib.is_active %}
-                  <button class="btn btn-danger btn-xs" onclick="removeLibrary({{ lib.id }})">
-                    <span class="glyphicon glyphicon-trash"></span> Remove
-                  </button>
-                  {% endif %}
-                </td>
-              </tr>
-              {% else %}
-              <tr><td colspan="6" class="text-center text-muted">No libraries registered yet.</td></tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-      </div>
+  <!-- ── Register New Library ────────────────────────────────── -->
+  <h3>{{_('Register New Library')}}</h3>
+  <form role="form" id="form-add-library" class="col-md-10 col-lg-6">
+    <div class="form-group">
+      <label for="lib-name">{{_('Name')}}</label>
+      <input type="text" class="form-control" id="lib-name"
+             placeholder="{{_('e.g. Belletristik')}}" required>
+    </div>
+    <div class="form-group">
+      <label for="lib-path">{{_('Container Path')}}</label>
+      <input type="text" class="form-control" id="lib-path"
+             placeholder="/calibre-libraries/belletristik" required>
+      <small class="form-text text-muted">{{_('Must contain a metadata.db file')}}</small>
+    </div>
+    <div class="form-group">
+      <label for="lib-desc">
+        {{_('Description')}} <small class="text-muted">({{_('optional')}})</small>
+      </label>
+      <input type="text" class="form-control" id="lib-desc">
+    </div>
+    <button type="submit" class="btn btn-default">{{_('Add Library')}}</button>
+  </form>
+  <div id="lib-add-result" class="col-md-10 col-lg-6 hidden"></div>
 
-      <!-- User access management -->
-      <div class="panel panel-default">
-        <div class="panel-heading"><strong>User Library Access</strong></div>
-        <div class="panel-body">
-          <div class="row">
-            <div class="col-md-3">
-              <label>Select User</label>
-              <select class="form-control" id="user-select" onchange="loadUserAccess()">
-                <option value="">-- choose user --</option>
-                {% for user in all_users %}
-                <option value="{{ user.id }}">{{ user.name }}</option>
-                {% endfor %}
-              </select>
-            </div>
-          </div>
-          <div id="user-access-panel" style="display:none; margin-top:16px;">
-            <form id="form-user-access">
-              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-              <table class="table table-condensed" id="user-access-table">
-                <thead>
-                  <tr>
-                    <th>Library</th>
-                    <th>Allow Access</th>
-                    <th>Set as Default</th>
-                  </tr>
-                </thead>
-                <tbody id="user-access-body"></tbody>
-              </table>
-              <button type="button" class="btn btn-primary" onclick="saveUserAccess()">Save Access</button>
-            </form>
-            <div id="user-access-result" class="alert" style="display:none; margin-top:8px;"></div>
-          </div>
-        </div>
-      </div>
+  <hr>
 
+  <!-- ── Registered Libraries ───────────────────────────────── -->
+  <h3>{{_('Registered Libraries')}}</h3>
+  <div class="col-xs-12">
+    <table class="table table-striped table-bordered" id="lib-table">
+      <thead>
+        <tr>
+          <th>{{_('ID')}}</th>
+          <th>{{_('Name')}}</th>
+          <th>{{_('Path')}}</th>
+          <th>{{_('Description')}}</th>
+          <th>{{_('Active')}}</th>
+          <th>{{_('Actions')}}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for lib in all_libraries %}
+        <tr id="lib-row-{{ lib.id }}">
+          <td>{{ lib.id }}</td>
+          <td>{{ lib.name }}</td>
+          <td><code>{{ lib.path }}</code></td>
+          <td>{{ lib.description or '' }}</td>
+          <td>
+            {% if lib.is_active %}
+              <span class="glyphicon glyphicon-ok text-success"></span>
+            {% else %}
+              <span class="glyphicon glyphicon-remove text-danger"></span>
+            {% endif %}
+          </td>
+          <td>
+            {% if lib.is_active %}
+            <button class="btn btn-danger btn-xs" onclick="removeLibrary({{ lib.id }})">
+              <span class="glyphicon glyphicon-trash"></span> {{_('Remove')}}
+            </button>
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="6" class="text-center text-muted">{{_('No libraries registered yet.')}}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <hr>
+
+  <!-- ── User Library Access ────────────────────────────────── -->
+  <h3>{{_('User Library Access')}}</h3>
+  <div class="col-md-10 col-lg-6">
+    <div class="form-group">
+      <label for="user-select">{{_('Select User')}}</label>
+      <select class="form-control" id="user-select" onchange="loadUserAccess()">
+        <option value="">{{_('-- choose user --')}}</option>
+        {% for user in all_users %}
+        <option value="{{ user.id }}">{{ user.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div id="user-access-panel" class="hidden">
+      <table class="table table-striped table-condensed" id="user-access-table">
+        <thead>
+          <tr>
+            <th>{{_('Library')}}</th>
+            <th>{{_('Allow Access')}}</th>
+            <th>{{_('Set as Default')}}</th>
+          </tr>
+        </thead>
+        <tbody id="user-access-body"></tbody>
+      </table>
+      <button type="button" class="btn btn-default" onclick="saveUserAccess()">
+        {{_('Save Access')}}
+      </button>
+      <div id="user-access-result" class="hidden"></div>
     </div>
   </div>
+
+  <hr>
+
+  <a href="{{ url_for('admin.admin') }}" class="btn btn-default">{{_('Back')}}</a>
 </div>
+{% endblock %}
 
+{% block js %}
 <script>
-const CSRF_TOKEN = document.querySelector('input[name="csrf_token"]').value;
+const CSRF_TOKEN = document.getElementById("csrf_token").value;
 
-// Add library
+// ── Add library ───────────────────────────────────────────────
 document.getElementById("form-add-library").addEventListener("submit", function(e) {
   e.preventDefault();
   const name = document.getElementById("lib-name").value.trim();
   const path = document.getElementById("lib-path").value.trim();
   const desc = document.getElementById("lib-desc").value.trim();
+  const el   = document.getElementById("lib-add-result");
 
   fetch("/admin/libraries", {
     method: "POST",
@@ -152,22 +142,20 @@ document.getElementById("form-add-library").addEventListener("submit", function(
   })
   .then(r => r.json().then(d => ({ok: r.ok, data: d})))
   .then(({ok, data}) => {
-    const el = document.getElementById("lib-add-result");
-    el.style.display = "block";
+    el.classList.remove("hidden", "alert-success", "alert-danger");
+    el.classList.add("alert", ok ? "alert-success" : "alert-danger");
     if (ok) {
-      el.className = "alert alert-success";
       el.textContent = `Library "${data.name}" added (ID ${data.id}). Reload to see it in the table.`;
       document.getElementById("form-add-library").reset();
     } else {
-      el.className = "alert alert-danger";
       el.textContent = data.error || "Unknown error";
     }
   });
 });
 
-// Remove library
+// ── Remove library ────────────────────────────────────────────
 function removeLibrary(libId) {
-  if (!confirm("Deactivate this library? No data will be deleted.")) return;
+  if (!confirm("{{_('Deactivate this library? No data will be deleted.')}}")) return;
   fetch(`/admin/libraries/${libId}`, {
     method: "DELETE",
     headers: {"X-CSRFToken": CSRF_TOKEN}
@@ -176,16 +164,21 @@ function removeLibrary(libId) {
   .then(data => {
     if (data.id) {
       const row = document.getElementById(`lib-row-${libId}`);
-      if (row) row.querySelector("td:nth-child(5)").innerHTML =
-        '<span class="glyphicon glyphicon-remove text-danger"></span>';
+      if (row) {
+        row.querySelector("td:nth-child(5)").innerHTML =
+          '<span class="glyphicon glyphicon-remove text-danger"></span>';
+        const btn = row.querySelector(".btn-danger");
+        if (btn) btn.remove();
+      }
     }
   });
 }
 
-// Load user access
+// ── Load user access ──────────────────────────────────────────
 function loadUserAccess() {
   const userId = document.getElementById("user-select").value;
-  if (!userId) { document.getElementById("user-access-panel").style.display = "none"; return; }
+  const panel  = document.getElementById("user-access-panel");
+  if (!userId) { panel.classList.add("hidden"); return; }
 
   const emptyAccess = {library_ids: [], default_library_id: null};
   Promise.all([
@@ -199,25 +192,26 @@ function loadUserAccess() {
     const tbody = document.getElementById("user-access-body");
     tbody.innerHTML = "";
     libs.filter(l => l.is_active).forEach(lib => {
-      const checked = accessMap[lib.id] ? "checked" : "";
+      const checked   = accessMap[lib.id] ? "checked" : "";
       const isDefault = lib.id === defaultId;
       tbody.innerHTML += `
         <tr>
-          <td>${lib.name} <small class="text-muted">(${lib.path})</small></td>
+          <td>${lib.name} <small class="text-muted">${lib.path}</small></td>
           <td><input type="checkbox" class="lib-access-check" data-lib-id="${lib.id}" ${checked}></td>
           <td><input type="radio" name="default-lib" value="${lib.id}" ${isDefault ? "checked" : ""}></td>
         </tr>`;
     });
-    document.getElementById("user-access-panel").style.display = "block";
+    panel.classList.remove("hidden");
   });
 }
 
-// Save user access
+// ── Save user access ──────────────────────────────────────────
 function saveUserAccess() {
-  const userId = document.getElementById("user-select").value;
-  const libIds = [...document.querySelectorAll(".lib-access-check:checked")].map(el => parseInt(el.dataset.libId));
+  const userId    = document.getElementById("user-select").value;
+  const libIds    = [...document.querySelectorAll(".lib-access-check:checked")].map(el => parseInt(el.dataset.libId));
   const defaultEl = document.querySelector('input[name="default-lib"]:checked');
   const defaultId = defaultEl ? parseInt(defaultEl.value) : null;
+  const el        = document.getElementById("user-access-result");
 
   fetch(`/admin/users/${userId}/libraries`, {
     method: "PUT",
@@ -226,10 +220,9 @@ function saveUserAccess() {
   })
   .then(r => r.json().then(d => ({ok: r.ok, data: d})))
   .then(({ok, data}) => {
-    const el = document.getElementById("user-access-result");
-    el.style.display = "block";
-    el.className = ok ? "alert alert-success" : "alert alert-danger";
-    el.textContent = ok ? "Access updated." : (data.error || "Error");
+    el.classList.remove("hidden", "alert-success", "alert-danger");
+    el.classList.add("alert", ok ? "alert-success" : "alert-danger");
+    el.textContent = ok ? "{{_('Access updated.')}}" : (data.error || "Error");
     if (ok) loadUserAccess();
   });
 }
