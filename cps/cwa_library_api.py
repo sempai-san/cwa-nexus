@@ -48,6 +48,35 @@ def list_libraries():
     ])
 
 
+@library_api.route("/admin/libraries/discover", methods=["GET"])
+@login_required
+@_admin_required
+def discover_libraries():
+    scan_root = "/calibre-libraries"
+    if not os.path.isdir(scan_root):
+        return jsonify([])
+
+    registered_paths = {
+        lib.path for lib in ub.session.query(ub.CalibreLibrary).all()
+    }
+
+    found = []
+    try:
+        for entry in os.scandir(scan_root):
+            if entry.is_dir(follow_symlinks=True):
+                if os.path.isfile(os.path.join(entry.path, "metadata.db")):
+                    found.append({
+                        "path": entry.path,
+                        "name": entry.name,
+                        "already_registered": entry.path in registered_paths,
+                    })
+    except OSError as e:
+        log.warning("Error scanning %s: %s", scan_root, e)
+
+    found.sort(key=lambda x: x["name"].lower())
+    return jsonify(found)
+
+
 @library_api.route("/admin/libraries", methods=["POST"])
 @login_required
 @_admin_required

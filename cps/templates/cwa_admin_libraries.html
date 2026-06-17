@@ -13,80 +13,107 @@
 
   <input type="hidden" id="csrf_token" value="{{ csrf_token() }}">
 
-  <!-- ── Register New Library ────────────────────────────────── -->
-  <h3>{{_('Register New Library')}}</h3>
-  <form role="form" id="form-add-library" class="col-md-10 col-lg-6">
-    <div class="form-group">
-      <label for="lib-name">{{_('Name')}}</label>
-      <input type="text" class="form-control" id="lib-name"
-             placeholder="{{_('e.g. Belletristik')}}" required>
-    </div>
-    <div class="form-group">
-      <label for="lib-path">{{_('Container Path')}}</label>
-      <input type="text" class="form-control" id="lib-path"
-             placeholder="/calibre-libraries/belletristik" required>
-      <small class="form-text text-muted">{{_('Must contain a metadata.db file')}}</small>
-    </div>
-    <div class="form-group">
-      <label for="lib-desc">
-        {{_('Description')}} <small class="text-muted">({{_('optional')}})</small>
-      </label>
-      <input type="text" class="form-control" id="lib-desc">
-    </div>
-    <button type="submit" class="btn btn-default">{{_('Add Library')}}</button>
-  </form>
-  <div id="lib-add-result" class="col-md-10 col-lg-6 hidden"></div>
+  <!-- ══════════════════════════════════════════════════════════
+       SECTION 1: Registered Libraries
+  ═══════════════════════════════════════════════════════════ -->
+  <h3>{{_('Registered Libraries')}}</h3>
+  <table class="table table-striped table-bordered" id="lib-table">
+    <thead>
+      <tr>
+        <th>{{_('ID')}}</th>
+        <th>{{_('Name')}}</th>
+        <th>{{_('Path')}}</th>
+        <th>{{_('Description')}}</th>
+        <th>{{_('Active')}}</th>
+        <th>{{_('Actions')}}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for lib in all_libraries %}
+      <tr id="lib-row-{{ lib.id }}">
+        <td>{{ lib.id }}</td>
+        <td>{{ lib.name }}</td>
+        <td><code>{{ lib.path }}</code></td>
+        <td>{{ lib.description or '' }}</td>
+        <td>
+          {% if lib.is_active %}
+            <span class="glyphicon glyphicon-ok text-success"></span>
+          {% else %}
+            <span class="glyphicon glyphicon-remove text-danger"></span>
+          {% endif %}
+        </td>
+        <td>
+          {% if lib.is_active %}
+          <button class="btn btn-danger btn-xs" onclick="removeLibrary({{ lib.id }})">
+            <span class="glyphicon glyphicon-trash"></span> {{_('Remove')}}
+          </button>
+          {% endif %}
+        </td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="6" class="text-center text-muted">{{_('No libraries registered yet.')}}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
 
   <hr>
 
-  <!-- ── Registered Libraries ───────────────────────────────── -->
-  <h3>{{_('Registered Libraries')}}</h3>
-  <div class="col-xs-12">
-    <table class="table table-striped table-bordered" id="lib-table">
+  <!-- ══════════════════════════════════════════════════════════
+       SECTION 2: Register New Library
+  ═══════════════════════════════════════════════════════════ -->
+  <h3>{{_('Register New Library')}}</h3>
+
+  <button class="btn btn-default" id="btn-scan" onclick="scanLibraries()">
+    <span class="glyphicon glyphicon-search"></span> {{_('Scan for Libraries')}}
+  </button>
+  <button class="btn btn-default" id="btn-toggle-manual" onclick="toggleManual()">
+    {{_('Add manually')}}
+  </button>
+
+  <div id="scan-results" class="hidden">
+    <table class="table table-striped table-bordered">
       <thead>
         <tr>
-          <th>{{_('ID')}}</th>
-          <th>{{_('Name')}}</th>
           <th>{{_('Path')}}</th>
-          <th>{{_('Description')}}</th>
-          <th>{{_('Active')}}</th>
-          <th>{{_('Actions')}}</th>
+          <th>{{_('Name')}}</th>
+          <th>{{_('Status')}}</th>
         </tr>
       </thead>
-      <tbody>
-        {% for lib in all_libraries %}
-        <tr id="lib-row-{{ lib.id }}">
-          <td>{{ lib.id }}</td>
-          <td>{{ lib.name }}</td>
-          <td><code>{{ lib.path }}</code></td>
-          <td>{{ lib.description or '' }}</td>
-          <td>
-            {% if lib.is_active %}
-              <span class="glyphicon glyphicon-ok text-success"></span>
-            {% else %}
-              <span class="glyphicon glyphicon-remove text-danger"></span>
-            {% endif %}
-          </td>
-          <td>
-            {% if lib.is_active %}
-            <button class="btn btn-danger btn-xs" onclick="removeLibrary({{ lib.id }})">
-              <span class="glyphicon glyphicon-trash"></span> {{_('Remove')}}
-            </button>
-            {% endif %}
-          </td>
-        </tr>
-        {% else %}
-        <tr>
-          <td colspan="6" class="text-center text-muted">{{_('No libraries registered yet.')}}</td>
-        </tr>
-        {% endfor %}
-      </tbody>
+      <tbody id="scan-results-body"></tbody>
     </table>
+  </div>
+
+  <div id="manual-form" class="hidden">
+    <form role="form" id="form-add-library" class="col-md-10 col-lg-6">
+      <div class="form-group">
+        <label for="lib-name">{{_('Name')}}</label>
+        <input type="text" class="form-control" id="lib-name"
+               placeholder="{{_('e.g. Belletristik')}}" required>
+      </div>
+      <div class="form-group">
+        <label for="lib-path">{{_('Container Path')}}</label>
+        <input type="text" class="form-control" id="lib-path"
+               placeholder="/calibre-libraries/belletristik" required>
+        <small class="form-text text-muted">{{_('Must contain a metadata.db file')}}</small>
+      </div>
+      <div class="form-group">
+        <label for="lib-desc">
+          {{_('Description')}} <small class="text-muted">({{_('optional')}})</small>
+        </label>
+        <input type="text" class="form-control" id="lib-desc">
+      </div>
+      <button type="submit" class="btn btn-default">{{_('Add Library')}}</button>
+    </form>
+    <div id="lib-add-result" class="col-md-10 col-lg-6 hidden"></div>
   </div>
 
   <hr>
 
-  <!-- ── User Library Access ────────────────────────────────── -->
+  <!-- ══════════════════════════════════════════════════════════
+       SECTION 3: User Library Access
+  ═══════════════════════════════════════════════════════════ -->
   <h3>{{_('User Library Access')}}</h3>
   <div class="col-md-10 col-lg-6">
     <div class="form-group">
@@ -127,7 +154,127 @@
 <script>
 const CSRF_TOKEN = document.getElementById("csrf_token").value;
 
-// ── Add library ───────────────────────────────────────────────
+function esc(s) {
+  return String(s)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+// ── Remove registered library ─────────────────────────────────
+function removeLibrary(libId) {
+  if (!confirm("{{_('Deactivate this library? No data will be deleted.')}}")) return;
+  fetch(`/admin/libraries/${libId}`, {
+    method: "DELETE",
+    headers: {"X-CSRFToken": CSRF_TOKEN}
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.id !== undefined) {
+      const row = document.getElementById(`lib-row-${libId}`);
+      if (row) {
+        row.querySelector("td:nth-child(5)").innerHTML =
+          '<span class="glyphicon glyphicon-remove text-danger"></span>';
+        const btn = row.querySelector(".btn-danger");
+        if (btn) btn.remove();
+      }
+    }
+  });
+}
+
+// ── Scan for libraries ────────────────────────────────────────
+function scanLibraries() {
+  const btn = document.getElementById("btn-scan");
+  btn.disabled = true;
+  btn.textContent = "{{_('Scanning...')}}";
+
+  fetch("/admin/libraries/discover", {headers: {"X-CSRFToken": CSRF_TOKEN}})
+    .then(r => r.json())
+    .then(results => {
+      btn.disabled = false;
+      btn.innerHTML = '<span class="glyphicon glyphicon-search"></span> {{_("Scan for Libraries")}}';
+
+      const tbody = document.getElementById("scan-results-body");
+      tbody.innerHTML = "";
+
+      if (results.length === 0) {
+        tbody.innerHTML =
+          `<tr><td colspan="3" class="text-center text-muted">{{_('No libraries found in /calibre-libraries.')}}</td></tr>`;
+      } else {
+        results.forEach((lib, i) => {
+          if (lib.already_registered) {
+            tbody.innerHTML +=
+              `<tr class="text-muted">
+                <td><code>${esc(lib.path)}</code></td>
+                <td>${esc(lib.name)}</td>
+                <td><span class="glyphicon glyphicon-ok text-success"></span> {{_('Already registered')}}</td>
+              </tr>`;
+          } else {
+            tbody.innerHTML +=
+              `<tr>
+                <td><code>${esc(lib.path)}</code></td>
+                <td><input type="text" class="form-control input-sm" id="scan-name-${i}" value="${esc(lib.name)}"></td>
+                <td>
+                  <button class="btn btn-default btn-xs discover-add-btn"
+                          data-path="${esc(lib.path)}" data-name-id="scan-name-${i}">
+                    <span class="glyphicon glyphicon-plus"></span> {{_('Add')}}
+                  </button>
+                </td>
+              </tr>`;
+          }
+        });
+      }
+      document.getElementById("scan-results").classList.remove("hidden");
+    })
+    .catch(() => {
+      btn.disabled = false;
+      btn.innerHTML = '<span class="glyphicon glyphicon-search"></span> {{_("Scan for Libraries")}}';
+    });
+}
+
+// Add button handler via event delegation on the scan-results tbody
+document.getElementById("scan-results-body").addEventListener("click", function(e) {
+  const btn = e.target.closest(".discover-add-btn");
+  if (!btn) return;
+  const path   = btn.dataset.path;
+  const nameId = btn.dataset.nameId;
+  const name   = document.getElementById(nameId).value.trim();
+  if (!name) return;
+
+  btn.disabled = true;
+  fetch("/admin/libraries", {
+    method: "POST",
+    headers: {"Content-Type": "application/json", "X-CSRFToken": CSRF_TOKEN},
+    body: JSON.stringify({name, path})
+  })
+  .then(r => r.json().then(d => ({ok: r.ok, data: d})))
+  .then(({ok, data}) => {
+    const row = btn.closest("tr");
+    if (ok) {
+      row.className = "text-muted";
+      row.innerHTML =
+        `<td><code>${esc(path)}</code></td>
+         <td>${esc(name)}</td>
+         <td><span class="glyphicon glyphicon-ok text-success"></span> {{_('Registered — reload page to update the table.')}}</td>`;
+    } else {
+      btn.disabled = false;
+      btn.closest("td").innerHTML =
+        `<span class="text-danger">${esc(data.error || "Error")}</span>`;
+    }
+  });
+});
+
+// ── Manual form toggle ────────────────────────────────────────
+function toggleManual() {
+  const form    = document.getElementById("manual-form");
+  const isHidden = form.classList.contains("hidden");
+  form.classList.toggle("hidden");
+  document.getElementById("btn-toggle-manual").textContent =
+    isHidden ? "{{_('Hide manual form')}}" : "{{_('Add manually')}}";
+}
+
+// ── Manual add form submit ────────────────────────────────────
 document.getElementById("form-add-library").addEventListener("submit", function(e) {
   e.preventDefault();
   const name = document.getElementById("lib-name").value.trim();
@@ -145,34 +292,13 @@ document.getElementById("form-add-library").addEventListener("submit", function(
     el.classList.remove("hidden", "alert-success", "alert-danger");
     el.classList.add("alert", ok ? "alert-success" : "alert-danger");
     if (ok) {
-      el.textContent = `Library "${data.name}" added (ID ${data.id}). Reload to see it in the table.`;
-      document.getElementById("form-add-library").reset();
+      el.textContent = `{{_('Library')}} "${data.name}" {{_('added')}} (ID ${data.id}). {{_('Reload page to see it in the table.')}}`;
+      this.reset();
     } else {
       el.textContent = data.error || "Unknown error";
     }
-  });
+  }.bind(this));
 });
-
-// ── Remove library ────────────────────────────────────────────
-function removeLibrary(libId) {
-  if (!confirm("{{_('Deactivate this library? No data will be deleted.')}}")) return;
-  fetch(`/admin/libraries/${libId}`, {
-    method: "DELETE",
-    headers: {"X-CSRFToken": CSRF_TOKEN}
-  })
-  .then(r => r.json())
-  .then(data => {
-    if (data.id) {
-      const row = document.getElementById(`lib-row-${libId}`);
-      if (row) {
-        row.querySelector("td:nth-child(5)").innerHTML =
-          '<span class="glyphicon glyphicon-remove text-danger"></span>';
-        const btn = row.querySelector(".btn-danger");
-        if (btn) btn.remove();
-      }
-    }
-  });
-}
 
 // ── Load user access ──────────────────────────────────────────
 function loadUserAccess() {
@@ -194,9 +320,9 @@ function loadUserAccess() {
     libs.filter(l => l.is_active).forEach(lib => {
       const checked   = accessMap[lib.id] ? "checked" : "";
       const isDefault = lib.id === defaultId;
-      tbody.innerHTML += `
-        <tr>
-          <td>${lib.name} <small class="text-muted">${lib.path}</small></td>
+      tbody.innerHTML +=
+        `<tr>
+          <td>${esc(lib.name)} <small class="text-muted">${esc(lib.path)}</small></td>
           <td><input type="checkbox" class="lib-access-check" data-lib-id="${lib.id}" ${checked}></td>
           <td><input type="radio" name="default-lib" value="${lib.id}" ${isDefault ? "checked" : ""}></td>
         </tr>`;
