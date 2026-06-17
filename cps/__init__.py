@@ -418,6 +418,7 @@ def create_app():
                     lib_scoped = get_session_for_library(lib.path)
                     calibre_db.session = lib_scoped()
                     g._active_library_scoped = lib_scoped
+                    g.calibre_dir = lib.path
                 except Exception as lib_e:
                     log.warning("Could not switch calibre_db to library %s: %s", lib.path, lib_e)
 
